@@ -19,24 +19,30 @@ class OverlayService : Service() {
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        rootView = FrameLayout(this).apply {
-    setOnTouchListener { _, event ->
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            hidePanel()
-        }
-        true
-    }
-        }
+        // Vista raíz (fondo transparente)
+        rootView = FrameLayout(this)
 
+        // Panel estilo iOS (Liquid Glass)
         panelView = LiquidGlassView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(420)
+                dpToPx(460)
             )
-            translationY = -dpToPx(420).toFloat()
+            translationY = -dpToPx(460).toFloat()
         }
 
+        // Agregar panel al root
         rootView.addView(panelView)
+
+        // Cerrar SOLO cuando se toca fuera del panel
+        rootView.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hidePanel()
+                true
+            } else {
+                false
+            }
+        }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -46,21 +52,31 @@ class OverlayService : Service() {
             else
                 WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
+            PixelFormat.TRANSLUCENT   // ✅ CORRECTO
         )
 
         params.gravity = Gravity.TOP
 
         windowManager.addView(rootView, params)
-
         showPanel()
     }
 
     private fun showPanel() {
         panelView.animate()
             .translationY(0f)
-            .setDuration(280)
-            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .setDuration(320)
+            .setInterpolator(android.view.animation.OvershootInterpolator(0.9f))
+            .start()
+    }
+
+    private fun hidePanel() {
+        panelView.animate()
+            .translationY(-dpToPx(460).toFloat())
+            .setDuration(260)
+            .setInterpolator(android.view.animation.AccelerateInterpolator())
+            .withEndAction {
+                stopSelf()
+            }
             .start()
     }
 
