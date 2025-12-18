@@ -1,4 +1,3 @@
-
 package com.freydroid.controlios26
 
 import android.app.Service
@@ -6,47 +5,68 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
-import android.view.Gravity
-import android.view.WindowManager
+import android.view.*
 import android.widget.FrameLayout
 
 class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private lateinit var overlayView: FrameLayout
+    private lateinit var rootView: FrameLayout
+    private lateinit var panelView: LiquidGlassView
 
     override fun onCreate() {
         super.onCreate()
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        overlayView = FrameLayout(this).apply {
-            addView(LiquidGlassView(context))
+        rootView = FrameLayout(this)
+
+        panelView = LiquidGlassView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(420)
+            )
+            translationY = -dpToPx(420).toFloat()
         }
+
+        rootView.addView(panelView)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
                 WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
 
         params.gravity = Gravity.TOP
 
-        windowManager.addView(overlayView, params)
+        windowManager.addView(rootView, params)
+
+        showPanel()
+    }
+
+    private fun showPanel() {
+        panelView.animate()
+            .translationY(0f)
+            .setDuration(280)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::overlayView.isInitialized) {
-            windowManager.removeView(overlayView)
+        if (::rootView.isInitialized) {
+            windowManager.removeView(rootView)
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
 }
