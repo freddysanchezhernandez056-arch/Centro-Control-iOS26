@@ -5,7 +5,9 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
-import android.view.*
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.WindowManager
 import android.widget.FrameLayout
 
 class OverlayService : Service() {
@@ -19,10 +21,8 @@ class OverlayService : Service() {
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        // Vista raíz (fondo transparente)
         rootView = FrameLayout(this)
 
-        // Panel estilo iOS (Liquid Glass)
         panelView = LiquidGlassView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -31,17 +31,13 @@ class OverlayService : Service() {
             translationY = -dpToPx(460).toFloat()
         }
 
-        // Agregar panel al root
         rootView.addView(panelView)
 
-        // Cerrar SOLO cuando se toca fuera del panel
         rootView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN) {
                 hidePanel()
                 true
-            } else {
-                false
-            }
+            } else false
         }
 
         val params = WindowManager.LayoutParams(
@@ -52,7 +48,7 @@ class OverlayService : Service() {
             else
                 WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT   // ✅ CORRECTO
+            PixelFormat.TRANSLUCENT
         )
 
         params.gravity = Gravity.TOP
@@ -74,22 +70,17 @@ class OverlayService : Service() {
             .translationY(-dpToPx(460).toFloat())
             .setDuration(260)
             .setInterpolator(android.view.animation.AccelerateInterpolator())
-            .withEndAction {
-                stopSelf()
-            }
+            .withEndAction { stopSelf() }
             .start()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::rootView.isInitialized) {
-            windowManager.removeView(rootView)
-        }
+        windowManager.removeView(rootView)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
-    }
+    private fun dpToPx(dp: Int): Int =
+        (dp * resources.displayMetrics.density).toInt()
 }
