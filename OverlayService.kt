@@ -19,7 +19,14 @@ class OverlayService : Service() {
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        rootView = FrameLayout(this)
+        rootView = FrameLayout(this).apply {
+    setOnTouchListener { _, event ->
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            hidePanel()
+        }
+        true
+    }
+        }
 
         panelView = LiquidGlassView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
